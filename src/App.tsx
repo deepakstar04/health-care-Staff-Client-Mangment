@@ -27,6 +27,12 @@ import AdminDashboard from './components/AdminDashboard';
 import StaffDashboard from './components/StaffDashboard';
 import { LogIn, Loader2, HeartPulse, UserCircle, KeyRound, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
