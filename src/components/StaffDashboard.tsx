@@ -65,10 +65,12 @@ export default function StaffDashboard({ user, profile }: StaffDashboardProps) {
   const [distanceToClient, setDistanceToClient] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!profile?.id) return;
+
     // 1. Fetch active attendance
     const qActive = query(
       collection(db, 'attendance'),
-      where('staffId', '==', user.uid),
+      where('staffId', '==', profile.id),
       where('status', '==', 'active'),
       limit(1)
     );
@@ -83,7 +85,7 @@ export default function StaffDashboard({ user, profile }: StaffDashboardProps) {
     // 2. Fetch history
     const qHistory = query(
       collection(db, 'attendance'),
-      where('staffId', '==', user.uid),
+      where('staffId', '==', profile.id),
       orderBy('punchIn', 'desc'),
       limit(10)
     );
@@ -108,7 +110,7 @@ export default function StaffDashboard({ user, profile }: StaffDashboardProps) {
         setCurrentLocation(loc);
         
         // Update staff last location
-        updateDoc(doc(db, 'staff', user.uid), {
+        updateDoc(doc(db, 'staff', profile.id), {
           lastLocation: { ...loc, updatedAt: new Date().toISOString() }
         });
       },
@@ -121,7 +123,7 @@ export default function StaffDashboard({ user, profile }: StaffDashboardProps) {
       unsubHistory();
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [user.uid, profile?.currentClientId]);
+  }, [profile?.id, profile?.currentClientId]);
 
   useEffect(() => {
     if (currentLocation && client) {
@@ -155,13 +157,18 @@ export default function StaffDashboard({ user, profile }: StaffDashboardProps) {
     }
 
     await addDoc(collection(db, 'attendance'), {
-      staffId: user.uid,
+      staffId: profile.id,
       clientId: client.id,
       shiftType: profile?.shiftPreference || '12h',
       punchIn: serverTimestamp(),
       locationIn: currentLocation,
       status: 'active'
     });
+  };
+
+  const handleLogout = () => {
+    if (signOut) signOut(auth); // Clear Firebase Auth if present
+    window.location.reload(); // Hard reload to clear session state quickly
   };
 
   if (!profile) {
@@ -184,7 +191,7 @@ export default function StaffDashboard({ user, profile }: StaffDashboardProps) {
             {profile.role} • {profile.shiftPreference} Shift
           </p>
         </div>
-        <button onClick={() => signOut(auth)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+        <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
           <LogOut className="w-5 h-5" />
         </button>
       </header>

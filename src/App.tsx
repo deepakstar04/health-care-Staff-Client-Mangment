@@ -40,6 +40,7 @@ export default function App() {
   const [staffData, setStaffData] = useState<Staff | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loginMode, setLoginMode] = useState<'admin' | 'staff'>('staff');
+  const [staffSession, setStaffSession] = useState<Staff | null>(null);
   
   // Form states
   const [staffId, setStaffId] = useState('');
@@ -79,21 +80,28 @@ export default function App() {
     e.preventDefault();
     setAuthError('');
     try {
-      // Direct login using the Staff ID pattern
-      // Pattern: staff.[id]@careflow.io
-      const email = `staff.${staffId.toLowerCase().trim()}@careflow.io`;
+      // Direct login checking Firestore for the ID and Passcode
+      const q = query(collection(db, 'staff'), where('staffId', '==', staffId.trim()));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        setAuthError("Staff ID not found.");
+        return;
+      }
+
+      const staffRecord = { id: snap.docs[0].id, ...snap.docs[0].data() } as Staff;
       
-      // Sign in with derived email and provided password
-      await signInWithEmailAndPassword(auth, email, password);
+      // Check password (default to 123456 if not set)
+      const validPassword = staffRecord.password || "123456";
+      
+      if (password === validPassword) {
+        setStaffSession(staffRecord);
+      } else {
+        setAuthError("Incorrect passcode.");
+      }
     } catch (error: any) {
       console.error("Staff login failed", error);
-      if (error.code === 'auth/user-not-found') {
-        setAuthError("Staff ID not recognized.");
-      } else if (error.code === 'auth/wrong-password') {
-        setAuthError("Incorrect passcode.");
-      } else {
-        setAuthError("Login failed. Check connectivity.");
-      }
+      setAuthError("Login error. Please try again.");
     }
   };
 
@@ -109,7 +117,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <AnimatePresence mode="wait">
-        {!user ? (
+        {!user && !staffSession ? (
           <motion.div 
             key="login"
             initial={{ opacity: 0, y: 20 }}
@@ -219,9 +227,9 @@ export default function App() {
             className="h-full"
           >
             {isAdmin ? (
-              <AdminDashboard user={user} />
+              <AdminDashboard user={user!} />
             ) : (
-              <StaffDashboard user={user} profile={staffData} />
+              <StaffDashboard user={user} profile={staffData || staffSession} />
             )}
           </motion.div>
         )}

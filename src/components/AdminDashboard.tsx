@@ -174,13 +174,17 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                         <input required type="text" placeholder="e.g. 1002" onChange={e => setFormData({...formData, staffId: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Role</label>
-                        <select onChange={e => setFormData({...formData, role: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300">
-                          <option value="nurse">Nursing Staff</option>
-                          <option value="gda">GDA (Helper)</option>
-                          <option value="office">Office Staff</option>
-                        </select>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Login Passcode</label>
+                        <input type="text" placeholder="Default: 123456" onChange={e => setFormData({...formData, password: e.target.value || "123456"})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
                       </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Role</label>
+                      <select onChange={e => setFormData({...formData, role: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300">
+                        <option value="nurse">Nursing Staff</option>
+                        <option value="gda">GDA (Helper)</option>
+                        <option value="office">Office Staff</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone Number</label>
