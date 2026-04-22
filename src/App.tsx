@@ -79,23 +79,21 @@ export default function App() {
     e.preventDefault();
     setAuthError('');
     try {
-      // 1. Find the staff user by staffId
-      const q = query(collection(db, 'staff'), where('staffId', '==', staffId));
-      const querySnapshot = await getDocs(q);
+      // Direct login using the Staff ID pattern
+      // Pattern: staff.[id]@careflow.io
+      const email = `staff.${staffId.toLowerCase().trim()}@careflow.io`;
       
-      if (querySnapshot.empty) {
-        setAuthError("Staff ID not found.");
-        return;
-      }
-
-      const staffRecord = querySnapshot.docs[0].data() as Staff;
-      const email = staffRecord.email; // We use their email for Firebase Auth
-
-      // 2. Sign in with standard password
+      // Sign in with derived email and provided password
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       console.error("Staff login failed", error);
-      setAuthError("Incorrect password or login error.");
+      if (error.code === 'auth/user-not-found') {
+        setAuthError("Staff ID not recognized.");
+      } else if (error.code === 'auth/wrong-password') {
+        setAuthError("Incorrect passcode.");
+      } else {
+        setAuthError("Login failed. Check connectivity.");
+      }
     }
   };
 

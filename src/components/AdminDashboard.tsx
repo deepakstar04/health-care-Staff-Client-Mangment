@@ -47,6 +47,10 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [finances, setFinances] = useState<FinancialRecord[]>([]);
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
+  
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<any>({});
 
   useEffect(() => {
     const unsubStaff = onSnapshot(collection(db, 'staff'), (snap) => {
@@ -70,6 +74,36 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     };
   }, []);
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (activeTab === 'staff') {
+        const email = `staff.${formData.staffId.toLowerCase().trim()}@careflow.io`;
+        await addDoc(collection(db, 'staff'), {
+          ...formData,
+          email,
+          balance: 0,
+          status: 'active',
+          createdAt: serverTimestamp()
+        });
+      } else if (activeTab === 'clients') {
+        await addDoc(collection(db, 'clients'), {
+          ...formData,
+          geofenceRadius: 150,
+          geofenceCenter: { lat: 0, lng: 0 },
+          assignedStaffIds: [],
+          paymentStatus: 'pending',
+          createdAt: serverTimestamp()
+        });
+      }
+      setIsModalOpen(false);
+      setFormData({});
+    } catch (err) {
+      console.error(err);
+      alert("Error saving data");
+    }
+  };
+
   const totalOwedByClients = clients.reduce((acc, c) => acc + (c.paymentStatus === 'overdue' ? c.weeklyRate : 0), 0);
   const totalStaffBalance = staff.reduce((acc, s) => acc + s.balance, 0);
 
@@ -90,7 +124,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
       // 2. Create staff profile for current user
       await setDoc(doc(db, 'staff', user.uid), {
-        staffId: "CP-ADMIN",
+        staffId: "admin",
         name: "Professional Caregiver",
         email: user.email,
         phone: "+1-555-0199",
@@ -109,6 +143,76 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden lg:flex-row bg-slate-50">
+      {/* Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 border border-slate-200"
+            >
+              <h2 className="text-xl font-bold text-slate-800 mb-6">Create New {activeTab === 'staff' ? 'Staff Member' : 'Client Profile'}</h2>
+              <form onSubmit={handleCreate} className="space-y-4">
+                {activeTab === 'staff' ? (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Full Name</label>
+                      <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Staff ID</label>
+                        <input required type="text" placeholder="e.g. 1002" onChange={e => setFormData({...formData, staffId: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Role</label>
+                        <select onChange={e => setFormData({...formData, role: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300">
+                          <option value="nurse">Nursing Staff</option>
+                          <option value="gda">GDA (Helper)</option>
+                          <option value="office">Office Staff</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone Number</label>
+                      <input required type="tel" onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Client Name</label>
+                      <input required type="text" onChange={e => setFormData({...formData, name: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Home Address</label>
+                      <input required type="text" onChange={e => setFormData({...formData, address: e.target.value})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Weekly Rate ($)</label>
+                      <input required type="number" onChange={e => setFormData({...formData, weeklyRate: Number(e.target.value)})} className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-300" />
+                    </div>
+                  </>
+                )}
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-600">Cancel</button>
+                  <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100">Save Profile</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Seed Data Button - Debug Only */}
       {staff.length === 0 && (
         <div className="fixed top-4 right-4 z-[100]">
@@ -200,9 +304,15 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
                <Search className="w-5 h-5" />
              </button>
-             <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]">
+             <button 
+              onClick={() => {
+                if (activeTab === 'overview') setActiveTab('staff');
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
+             >
                <Plus className="w-4 h-4" />
-               New {activeTab.slice(0, -1)}
+               New {activeTab === 'overview' ? 'Staff' : activeTab.slice(0, -1)}
              </button>
           </div>
         </header>
