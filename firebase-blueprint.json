@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "Staff": {
+      "title": "Staff Member",
+      "description": "Details of healthcare staff including nursing, GDA, and office members.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "staffId": { "type": "string", "description": "Unique numeric or alphanumeric ID." },
+        "password": { "type": "string", "description": "Login password for staff." },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["nurse", "gda", "office"] },
+        "status": { "type": "string", "enum": ["active", "on_leave", "resigned"] },
+        "currentClientId": { "type": "string", "description": "ID of the client they are currently serving." },
+        "shiftPreference": { "type": "string", "enum": ["12h", "24h"] },
+        "lastLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "updatedAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "balance": { "type": "number", "description": "Current unpaid balance or advance status." }
+      },
+      "required": ["name", "role", "status"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Details of patients or households receiving care.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "geofenceCenter": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "geofenceRadius": { "type": "number", "description": "Radius in meters for auto punch-out." },
+        "assignedStaffIds": { "type": "array", "items": { "type": "string" } },
+        "paymentStatus": { "type": "string", "enum": ["paid", "pending", "overdue"] },
+        "weeklyRate": { "type": "number" }
+      },
+      "required": ["name", "address"]
+    },
+    "Attendance": {
+      "title": "Attendance Log",
+      "description": "Record of punch-in and punch-out events.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "staffId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "shiftType": { "type": "string", "enum": ["12h", "24h"] },
+        "punchIn": { "type": "string", "format": "date-time" },
+        "punchOut": { "type": "string", "format": "date-time" },
+        "locationIn": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "locationOut": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "status": { "type": "string", "enum": ["active", "completed", "auto_out"] }
+      },
+      "required": ["staffId", "clientId", "punchIn"]
+    },
+    "FinancialRecord": {
+      "title": "Financial Transaction",
+      "description": "Represents advances, payments, or salary deductions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "entityId": { "type": "string", "description": "ID of staff or client." },
+        "type": { "type": "string", "enum": ["staff_advance", "staff_salary", "client_payment"] },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed"] }
+      },
+      "required": ["entityId", "type", "amount", "date"]
+    }
+  },
+  "firestore": {
+    "/staff": { "schema": "Staff", "description": "List of all healthcare workers." },
+    "/clients": { "schema": "Client", "description": "List of clients receiving services." },
+    "/attendance": { "schema": "Attendance", "description": "Historical attendance tracking data." },
+    "/finances": { "schema": "FinancialRecord", "description": "Transcripts of all monetary movements." }
+  }
+}

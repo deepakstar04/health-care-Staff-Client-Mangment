@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && request.auth.token.email == 'codebrodev@gmail.com'; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation Helpers
+    function isValidStaff(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.role in ['nurse', 'gda', 'office'] &&
+             data.status in ['active', 'on_leave', 'resigned'];
+    }
+
+    function isValidClient(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.address is string;
+    }
+
+    function isValidAttendance(data) {
+      return data.staffId is string && data.clientId is string &&
+             data.punchIn is timestamp &&
+             data.shiftType in ['12h', '24h'];
+    }
+
+    // Collection Rules
+    match /staff/{staffId} {
+      allow read: if isSignedIn();
+      allow list: if isSignedIn(); // Added to allow lookup by staffId
+      allow create, update, delete: if isAdmin();
+      allow update: if isOwner(staffId) && incoming().diff(existing()).affectedKeys().hasOnly(['lastLocation', 'status']);
+    }
+
+    match /clients/{clientId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /attendance/{atId} {
+      allow read: if isSignedIn() && (isAdmin() || existing().staffId == request.auth.uid);
+      allow create: if isSignedIn() && (isAdmin() || incoming().staffId == request.auth.uid) && isValidAttendance(incoming());
+      allow update: if isSignedIn() && (isAdmin() || existing().staffId == request.auth.uid) && 
+                    (incoming().diff(existing()).affectedKeys().hasOnly(['punchOut', 'locationOut', 'status']));
+    }
+
+    match /finances/{recordId} {
+      allow read: if isSignedIn() && (isAdmin() || existing().entityId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+  }
+}

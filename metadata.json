@@ -1,0 +1,13 @@
+{
+  "name": "CarePulse Staff",
+  "description": "Comprehensive healthcare staff and client management system with automated attendance, location tracking, and financial management.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Real-time Attendance",
+    "Staff Assignment",
+    "Financial Tracking",
+    "Geofencing"
+  ]
+}
